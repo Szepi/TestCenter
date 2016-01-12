@@ -198,7 +198,7 @@ class TestCase:
                         stdout=PIPE, stderr=PIPE, cwd=work_path)
         usePoll = False;
         if usePoll:
-            process.stdin.write(bytes(self.stdin, "ascii"))
+            process.stdin.write(bytes(self.stdin, "utf-8"))
             fin_time = time.time() + timeout
             s = 0.01
             while process.poll() == None and fin_time > time.time():
@@ -216,7 +216,7 @@ class TestCase:
         else:
             # fin_time = time.time() + timeout
             try:
-                outdata, errdata = process.communicate(bytes(self.stdin, "ascii"),timeout=timeout)    
+                outdata, errdata = process.communicate(bytes(self.stdin, "utf-8"),timeout=timeout)    
             except TimeoutExpired:
                 process.kill()
                 outdata, errdata = process.communicate()
@@ -281,7 +281,7 @@ class TestCase:
     def err_msg(self):
         '''Returns the error message from the result (if there was an error)'''
         if self.result==TestCase.ERR:
-            return self.result_details[1].decode('ascii') 
+            return self.result_details[1].decode('utf-8') 
         return ""
     
     def __create_exp_files(self,actual_files):
