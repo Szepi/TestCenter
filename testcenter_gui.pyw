@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
-import platform
+import myplatform
 import TestSuite
 import configparser
 #import TestCase
@@ -74,7 +74,7 @@ class ResultViewer(ttk.Frame):
             treeview.bind('<3>', self.on_rightclick)
             
 #        treeview.bind("<Button-3>", self.on_rightclick)
-#        if platform.is_mac():
+#        if myplatform.is_mac():
 #            treeview.bind("<Button-1>", self.on_rightclick)
         
         parent.add(self,text=script_name)
@@ -113,7 +113,7 @@ class ResultViewer(ttk.Frame):
         
         # Files that differ  ---------------------------------------------
         def run_diffmerge(file1,file2):
-            diffmerge_exec = self.config['DEFAULT'].get('diffmerge_exec',platform.diffmerge_exec()) 
+            diffmerge_exec = self.config['DEFAULT'].get('diffmerge_exec',myplatform.diffmerge_exec()) 
             subprocess.call([diffmerge_exec, "--nosplash", file2,file1])
         menu_diff_files = tk.Menu(menu,tearoff=0)
         if test_case.is_fail():
@@ -271,7 +271,7 @@ class Application(ttk.Frame):
               , ("<Control-x>",lambda x: self.root.quit())
               , ("<Control-r>",lambda x: self.runall()) 
         )
-        if platform.is_mac():
+        if myplatform.is_mac():
             acc = ( ("<Command-z>",lambda x: self.select_script_zip())
                   , ("<Command-d>",lambda x: self.select_script_dir())
                   , ("<Command-t>",lambda x: self.select_testcase_dir())
@@ -285,7 +285,7 @@ class Application(ttk.Frame):
         top = tk.Menu(self.root)
         self.root.config(menu=top)
         file = self.menu_file = tk.Menu(top,tearoff=False)
-        acc_str = platform.accelerator_string()
+        acc_str = myplatform.accelerator_string()
         file.add_command(label='Script ZIP file'
             , command=self.select_script_zip, underline=7, accelerator=acc_str+"+Z")
         file.add_command(label='Script directory file'
@@ -293,7 +293,7 @@ class Application(ttk.Frame):
         file.add_separator()
         file.add_command(label='Testcase directory'
             , command=self.select_testcase_dir, underline=0, accelerator=acc_str+"+T")
-        if not platform.is_mac(): # on a mac, quit always exists
+        if not myplatform.is_mac(): # on a mac, quit always exists
             file.add_separator()
             file.add_command(label='Exit'
                 , command=self.root.quit, underline=1, accelerator=acc_str+"+X")

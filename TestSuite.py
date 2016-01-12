@@ -94,7 +94,7 @@ class TestSuite:
      
     # list of files allowed to be in the test directory:
     allowed_files = ("marking.py", "pep8.py", "marking.ini", "marking_gui.pyw"
-        , "diffs.py", "TestCase.py", "TestSuite.py", "platform.py"
+        , "diffs.py", "TestCase.py", "TestSuite.py", "myplatform.py"
         , "SimpleDialog.py"
         )  
     

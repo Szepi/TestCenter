@@ -1,4 +1,6 @@
 import os
+import signal
+import myplatform
 import glob
 import shutil
 import tempfile
@@ -191,11 +193,14 @@ class TestCase:
         interpreter_path = sys.executable
         command = '%s "%s" %s' % (interpreter_path, script_path, self.get_cli())
         if print_cmd:
-            print("From directory", work_path, "running command:\n", command)
+            print("From directory %s, on test-case %s, running command:\n%s"
+                % (work_path,self.name,command) 
+            )
         self.work_path = work_path
         self.command   = command
-        process = Popen(command, shell=True, stdin=PIPE,
-                        stdout=PIPE, stderr=PIPE, cwd=work_path)
+        process = Popen(command, shell=True, stdin=PIPE
+                    , stdout=PIPE, stderr=PIPE, cwd=work_path
+                    , preexec_fn=os.setsid)
         usePoll = False;
         if usePoll:
             process.stdin.write(bytes(self.stdin, "utf-8"))
@@ -218,8 +223,22 @@ class TestCase:
             try:
                 outdata, errdata = process.communicate(bytes(self.stdin, "utf-8"),timeout=timeout)    
             except TimeoutExpired:
-                process.kill()
-                outdata, errdata = process.communicate()
+                print("Timeout of %s seconds expired. Trying to kill process." % timeout)
+                # because we started with shell=True, we need to kill the process group on Linux:
+                # see http://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
+                if myplatform.is_linux():
+                    os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                else:
+                    process.kill()
+                print("Kill sent. Waiting for process to return")
+                # process.wait()
+                outdata, errdata = (b"",b"")
+                try:
+                    outdata, errdata = process.communicate(timeout=0.1)
+                except TimeoutExpired:
+                    outdata, errdata = (b"",b"")
+                    print("OOPS: process got stuck")
+                print("Process returned")
                 errdata = b"Timeout expired.\n" + errdata
                 #~ exitstatus = process.wait()
                 #~ print("outs",outs,"\nerrs:", errs, "\nexitstatus", exitstatus)
