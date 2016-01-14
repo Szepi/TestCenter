@@ -317,19 +317,20 @@ class TestSuite:
             res_match = TestSuite.RESOURCE_RE.match(filename)
             if res_match==None:
                 # add to each testcase
-                for test_case in test_cases:
+                for test_name, test_case in test_cases.items():
                     test_case.add_resource(resource_path)
 #                old behavior:
 #                raise RuntimeError("""Unexpected resource: %s."""
 #                     """Resources must be named <testname>-<resource_filename>""" 
 #                     """with no dash in filename or ext""" % (filename, ))
             #test_name = script_name+"-"+res_match.group(1)
-            test_name = res_match.group(1)
-#            print('test_name',test_name,resource_path)
-            test_case = test_cases.setdefault(test_name
-                        , TestCase(test_name,script_name,exp_path,output_path,err_path)
-                        )
-            test_case.add_resource(resource_path)
+            else:
+                test_name = res_match.group(1)
+                # print('test_name',test_name,resource_path)
+                test_case = test_cases.setdefault(test_name
+                    , TestCase(test_name,script_name,exp_path,output_path,err_path)
+                )
+                test_case.add_resource(resource_path)
 
     def __add_exp_files(self,test_cases,script_name,test_path):
         exp_path = os.path.join(test_path, TestSuite.EXPECTED_DIR)
