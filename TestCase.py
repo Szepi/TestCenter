@@ -383,3 +383,23 @@ class TestCase:
                         self.result_details.add_match_result( output_file_basename, (softtest_diffs, hardtest_diffs, actual_dest, exp_path) )
                     break
                                         
+        for exp_path in self.result_details.unmatched_exp_files:
+            errdata = str.encode(
+                "Expected file \"{}\" has no output file match".format(
+                    exp_path
+                )
+            )
+            trace(errdata)
+
+            basename = os.path.basename(exp_path)
+
+            err_file = os.path.join(self.err_path, basename)
+            open(err_file, 'wb').write(errdata + b"\n")
+
+            self.result = TestCase.ERR
+            self.result_details = (
+                0,
+                errdata,
+                err_file,
+                os.path.join(self.output_path, basename)
+            )
