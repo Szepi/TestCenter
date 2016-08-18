@@ -57,7 +57,8 @@ def prep_submission(submission,assignment_name,verify_dir_structure=True):
 
 class TestSuite:
     # the pattern of testcase names is ASSIGNMENTNAME-SCRIPTNAME-test, as below: 
-    TESTCASENAME_REGEXP = re.compile("(as-(\d+)-(\d+))-([\w\-]+\.py)-test")
+    TESTCASENAME_REGEXP_PY = re.compile("(as-(\d+)-(\d+))-([\w\-]+\.py)-test")
+    TESTCASENAME_REGEXP_ANY = re.compile("(as-(\d+)-(\d+))-([\w\-\.]+)-test")
 
     # An input file in a test case has the format <testname>-<type>.txt,
     # where <testname> is the name of the testcase,
@@ -98,11 +99,13 @@ class TestSuite:
         , "SimpleDialog.py"
         )  
     
-    def __init__(self,testcase_dir):
+    def __init__(self,testcase_dir,any_language):
         ''' Sets up the TestSuite by collecting all the test cases
             from the testcase_dir directory.
         '''
         self.testcase_dir = testcase_dir
+        self.any_language = any_language
+        self.TESTCASENAME_REGEXP = TestSuite.TESTCASENAME_REGEXP_ANY if self.any_language else TestSuite.TESTCASENAME_REGEXP_PY        
         self.test_cases = {} # dict of dict; usage: test_cases[scriptname][testname]
         self.assignment_name = self.__verify_testdir_contents()
     
@@ -118,7 +121,7 @@ class TestSuite:
         # Go through each of the test scripts
         for test_path in test_directories:
             print("Looking into ",test_path)
-            m = TestSuite.TESTCASENAME_REGEXP.match(os.path.basename(test_path))
+            m = self.TESTCASENAME_REGEXP.match(os.path.basename(test_path))
             if m==None:  # Not a script test directory
                 continue
             if m.group(1)!=self.assignment_name:
@@ -157,13 +160,14 @@ class TestSuite:
         if result==TestCase.SOFTTEST_FAIL or result==TestCase.HARDTEST_FAIL:
             detail.print()
     
-    def run_tests(self,submission_dir,timeout,gen_res,visible_space_diff,verbose):
+    def run_tests(self,submission_dir,timeout,gen_res,visible_space_diff
+        ,verbose):
         for (k,v) in sorted(list(self.test_cases.items())):
             trace("Running tests against script %s" % (k,))
             for (kk,vv) in sorted(list(v.items())):
                 trace("Running test %s" % (kk,))
                 (result,detail) = \
-                    vv.run_test(submission_dir,timeout,gen_res,visible_space_diff,verbose)
+                    vv.run_test(submission_dir,timeout,gen_res,visible_space_diff,self.any_language,verbose)
                 if verbose:
                     print("Script %s on test %s: " % (k,kk),end='')
                     self.print_result(result,detail)
@@ -214,7 +218,7 @@ class TestSuite:
         '''Verify the contents of the directory containing the test
            to see if there are invalid files there.
            The only permitted files are the ones listed in
-           TestSuite.allwed_files.
+           TestSuite.allowed_files.
            In addition to these files, the directory may contain folders
            whose name follows the TESTCASENAME_REGEXP pattern,
            where each directory must belong to the same assignment.
@@ -222,11 +226,11 @@ class TestSuite:
         '''
         testdir_files = glob.glob(os.path.join(os.path.abspath(self.testcase_dir), "*"))  # get test files
         asn_dir = None
-        
         # make sure we don't have any surprises inside the marking directory
         for file in testdir_files:
             base_name = os.path.basename(file)
-            m = TestSuite.TESTCASENAME_REGEXP.match(base_name)
+            print("Verifying contents of",base_name)
+            m = self.TESTCASENAME_REGEXP.match(base_name)
             if m is not None:
                 if asn_dir == None:
                     asn_dir = m.group(1) # e.g., returns as-<NUM>-<NUM>
@@ -257,7 +261,7 @@ class TestSuite:
                      "The test will not run while the following file is in " +
                      "the directory: " + base_name)
         if asn_dir==None:
-            print(testdir_files)
+            print("Found suspicious files:",testdir_files)
             raise RuntimeError("""The marking directory must contain at least one """
                 """testcase directory named "<assignment>-<scriptfile>-test", """
                 """where <assignment> is of the form "as-<courseid>-<asnnum>", """

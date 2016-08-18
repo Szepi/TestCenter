@@ -3,6 +3,7 @@ import signal
 import myplatform
 import glob
 import shutil
+import distutils.dir_util
 import tempfile
 import sys
 import time
@@ -188,10 +189,36 @@ class TestCase:
             res_basenames.append(pure_name)
         return res_basenames
 
-    def __run_script(self,work_path,script_path,timeout,print_cmd=False):
+    def __copy_sourcefiles(self,script_path,work_path):
+        '''Copy all files from the script source directory
+        to the working directory.
+        Return the names of files copied.
+        '''
+        basenames = []
+        spath = os.path.join(os.path.dirname(script_path),'*')
+        files = glob.glob(spath)
+        for filepath in files:
+            filename = os.path.basename(filepath)
+            tofile = os.path.join(work_path,filename)
+            if os.path.isfile(filepath):
+                shutil.copyfile(filepath, tofile)
+                print("Copying %s to %s" %(filename,tofile))
+                basenames.append(filename)
+        return basenames
+
+    def __run_script(self,work_path,script_path,timeout,any_language,print_cmd=False):
         # Run the test with redirected streams
         interpreter_path = sys.executable
-        command = '%s "%s" %s' % (interpreter_path, script_path, self.get_cli())
+        (base,ext) = os.path.splitext(script_path)
+        if ext==".py": 
+            any_language = False
+        command = '%s "%s" %s' % (interpreter_path, script_path, self.get_cli()) \
+            if not any_language else "%s %s" % (script_path, self.get_cli())
+        extra_files_in_workpath = []
+        if any_language:
+            # copy all files from the script_path to the work directory
+            extra_files_in_workpath = self.__copy_sourcefiles(script_path,work_path)
+            
         if print_cmd:
             print("From directory %s, on test-case %s, running command:\n%s"
                 % (work_path,self.name,command) 
@@ -246,12 +273,12 @@ class TestCase:
         exitstatus = process.wait()       # requires binary files
         trace(exitstatus)
         # trace(outdata + errdata + exitstatus)
-        return (outdata,errdata,exitstatus)
+        return (outdata,errdata,exitstatus,extra_files_in_workpath)
     
-    def run_test(self,submission_dir,timeout,gen_res,visible_space_diff,print_cmd=False):
+    def run_test(self,submission_dir,timeout,gen_res,visible_space_diff,any_language,print_cmd=False):
         script_path = os.path.abspath(os.path.join(submission_dir, self.script_name))        
         if not os.path.exists(script_path):
-            raise RuntimeError("Submission is missing script %s" % (self.script_name,))
+            raise RuntimeError("Submission is missing script %s from directory %s" % (self.script_name,submission_dir))
 
         print("Running",script_path)
         work_path = tempfile.mkdtemp(prefix="work-") #@todo clean this up at the end
@@ -274,8 +301,10 @@ class TestCase:
 #        if os.path.exists(stderr_path):
 #            os.remove(stderr_path)
 
-        (outdata,errdata,exitstatus) = \
-        self.__run_script(work_path,script_path,timeout,print_cmd)
+        (outdata,errdata,exitstatus,extra_files_in_workpath) = \
+        self.__run_script(work_path,script_path,timeout,any_language,print_cmd)
+        
+        res_basenames += extra_files_in_workpath
         
         if exitstatus or errdata:  # save status+stderr
             open(err_file, 'wb').write(errdata)  # redundant??
@@ -306,11 +335,13 @@ class TestCase:
     def __create_exp_files(self,actual_files):
         for actual_path in actual_files:
             actual_name = os.path.basename(actual_path)
-            # Move it to the expected folder with a name corresponding to the test
-            actual_basename = self.name + "-" + actual_name
-            print("Saving", actual_path, "to", actual_basename)
-            exp_dest = os.path.join(self.exp_path, actual_basename)
-            shutil.move(actual_path, exp_dest)
+            # don't copy anything but stderr or stdout
+            if actual_name in ["stderr.txt", "stdout.txt"]:
+                # Move it to the expected folder with a name corresponding to the test
+                actual_basename = self.name + "-" + actual_name
+                print("Saving", actual_path, "to", actual_basename)
+                exp_dest = os.path.join(self.exp_path, actual_basename)
+                shutil.move(actual_path, exp_dest)
         
     @staticmethod
     def __read_file(filename):
@@ -349,7 +380,8 @@ class TestCase:
         self.result_details.unmatched_exp_files = set(self.exp_paths)
         for output_file in output_files:
             output_file_basename = os.path.basename(output_file)
-            # ignore resources, __pycache__, and leave them in the work dir
+            # ignore resources, __pycache__, and files from the script source dir
+            # and leave them in the work dir
             if output_file_basename in res_basenames or output_file_basename=="__pycache__":
                 self.result_details.unmatched_output_files.remove(output_file)
                 continue

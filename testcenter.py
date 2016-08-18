@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import argparse
 import TestSuite
@@ -64,14 +64,17 @@ def main():
                               'for the user')
     parser.add_argument('--verify_script_dir', action='store_true'
                        , help='Verify whether the script directory is correctly formatted')
+    parser.add_argument('--python_only', action='store_true'
+                       , help='Allow python only')
     args = parser.parse_args()
 
     testcase_source = os.path.abspath(os.getcwd())
     if args.test_directory:
         testcase_source = args.test_directory 
     try:
+        any_language = not args.python_only
         print("Creating test suite")
-        test_suite = TestSuite.TestSuite(testcase_source)
+        test_suite = TestSuite.TestSuite(testcase_source,any_language)
         print("Collecting script-tests")
         test_suite.collect_tests(create_missing_dirs=False)
         print("Collected %s script-tests" % len(test_suite.test_cases))

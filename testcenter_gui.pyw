@@ -196,6 +196,7 @@ class Application(ttk.Frame):
         self.test_suite = None
         self.verify_script_dir = False # whether the script directory name has to be the same as the assignment name
         self.summary = (0,0,0,0) # Tests, Errs, Soft-test failures, Hard-test failures
+        self.any_language = True # whether any language is allowed, or just python
         
         self.config = configparser.ConfigParser()
         self.root = master # must be a toplevel window or the root
@@ -406,7 +407,7 @@ class Application(ttk.Frame):
 #        print(self.nb.tabs()[0])
         print("Creating test suite")
         try:
-            self.test_suite = TestSuite.TestSuite(self.testcase_source)
+            self.test_suite = TestSuite.TestSuite(self.testcase_source,any_language=self.any_language)
         except RuntimeError as err:
             tk.messagebox.showerror("Error creating the test suite", str(err))
             self.reset_test_suite()
