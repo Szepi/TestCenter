@@ -3,14 +3,14 @@ import os
 import re
 from TestCase import TestCase
 import logging
-#logging.basicConfig(level=logging.DEBUG)
-#logging.basicConfig(level=logging.WARNING)
+# logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.WARNING)
 
 import zipfile
 import tempfile
 
-#@todo: Separate initialization was the test structure (so that alternate initialization becomes possible)
-#testcase_dir = None  # The base marking dir
+# @todo: Separate initialization was the test structure (so that alternate initialization becomes possible)
+# testcase_dir = None  # The base marking dir
 
 
 def verbose(*args):
@@ -21,7 +21,7 @@ def verbose(*args):
 def quiet(*args):
     pass
 
-trace = logging.debug # quiet  # set debugging to quiet
+trace = logging.debug #  quiet  # set debugging to quiet
 
 def prep_submission(submission,assignment_name,verify_dir_structure=True):
     '''Prepares the submission for testing.
@@ -46,98 +46,98 @@ def prep_submission(submission,assignment_name,verify_dir_structure=True):
                   % (assignment_name,))
     elif not os.path.exists(submission):
         raise RuntimeError("Missing directory %s" % (submission,))
-    submission = os.path.normpath(submission) # remove duplicates // etc..
+    submission = os.path.normpath(submission) #  remove duplicates // etc..
     basename = os.path.basename(submission)
-    # check whether the submission directory ends with the assignment_name
-    if verify_dir_structure and basename != assignment_name:  
+    #  check whether the submission directory ends with the assignment_name
+    if verify_dir_structure and basename != assignment_name:
         raise RuntimeError("""The submission directory must end with %s, """
               """not with %s""" % (assignment_name, basename) )
     return submission
 
 
 class TestSuite:
-    # the pattern of testcase names is ASSIGNMENTNAME-SCRIPTNAME-test, as below: 
+    #  the pattern of testcase names is ASSIGNMENTNAME-SCRIPTNAME-test, as below:
     TESTCASENAME_REGEXP_PY = re.compile("(as-(\d+)-(\d+))-([\w\-]+\.py)-test")
     TESTCASENAME_REGEXP_ANY = re.compile("(as-(\d+)-(\d+))-([\w\-\.]+)-test")
 
-    # An input file in a test case has the format <testname>-<type>.txt,
-    # where <testname> is the name of the testcase,
-    # and type is either "stdin", or "arg" or something else.
-    # When type is "stdin", the contents of the input file determines the standard
-    # input for the test case.
-    # When type is "arg", the contents of the input file determines the arguments
-    # to be passed to the script to be tested.
-    # In the remaining cases, the file is treated as a command line 
-    # input file (<testname>- is chopped from the filename). 
-    # In case more than one command line file
-    # is present they will not be passed in automatically, instead 
-    # <name>-arg.txt will need to call the files in their
-    # appropriate order. When an <arg> file is present, the file names will
-    # not be passed automatically regardless.
+    #  An input file in a test case has the format <testname>-<type>.txt,
+    #  where <testname> is the name of the testcase,
+    #  and type is either "stdin", or "arg" or something else.
+    #  When type is "stdin", the contents of the input file determines the standard
+    #  input for the test case.
+    #  When type is "arg", the contents of the input file determines the arguments
+    #  to be passed to the script to be tested.
+    #  In the remaining cases, the file is treated as a command line
+    #  input file (<testname>- is chopped from the filename).
+    #  In case more than one command line file
+    #  is present they will not be passed in automatically, instead
+    #  <name>-arg.txt will need to call the files in their
+    #  appropriate order. When an <arg> file is present, the file names will
+    #  not be passed automatically regardless.
     INPUT_TYPE_RE_PTN = "(\w+)-(\w+)\.(?:\w+)"
     INPUT_TYPE_RE = re.compile(INPUT_TYPE_RE_PTN)
-    
-    # Resource filename pattern: <testname>-<resource_name>.<ext>
-    # Here, resource_name and ext cannot have a dash in it (the last dash is taken
-    # in determining the two parts).
-    RESOURCE_RE = re.compile("(\w+)-([^-]*)") 
-    
-    # Deprecated: Expected output file pattern: <scriptname>.<ext>-<testname>-<type>.<ext>
-    # Expected output file pattern: <testname>-<type>.<ext>
-    #     
-    OUTPUT_RE = INPUT_TYPE_RE # re.compile("(?:\w)+\.(?:\w+)-(\w+)-([^.]+)\.(?:\w+)")
-    #                    in1 - stdout.text
-    
-    # the subdirectories for each script to be tested:
+
+    #  Resource filename pattern: <testname>-<resource_name>.<ext>
+    #  Here, resource_name and ext cannot have a dash in it (the last dash is taken
+    #  in determining the two parts).
+    RESOURCE_RE = re.compile("(\w+)-([^-]*)")
+
+    #  Deprecated: Expected output file pattern: <scriptname>.<ext>-<testname>-<type>.<ext>
+    #  Expected output file pattern: <testname>-<type>.<ext>
+    #
+    OUTPUT_RE = INPUT_TYPE_RE #  re.compile("(?:\w)+\.(?:\w+)-(\w+)-([^.]+)\.(?:\w+)")
+    #                     in1 - stdout.text
+
+    #  the subdirectories for each script to be tested:
     TESTCASE_SUBDIRECTORIES = \
     (EXPECTED_DIR, ERROR_DIR, INPUT_DIR, OUTPUT_DIR, RESOURCE_DIR) =\
      ("Expected", "Errors", "Inputs", "Outputs", "Resources")
-     
-    # list of files allowed to be in the test directory:
+
+    #  list of files allowed to be in the test directory:
     allowed_files = ("marking.py", "pep8.py", "marking.ini", "marking_gui.pyw"
         , "diffs.py", "TestCase.py", "TestSuite.py", "myplatform.py"
         , "SimpleDialog.py"
-        )  
-    
+        )
+
     def __init__(self,testcase_dir,any_language):
         ''' Sets up the TestSuite by collecting all the test cases
             from the testcase_dir directory.
         '''
         self.testcase_dir = testcase_dir
         self.any_language = any_language
-        self.TESTCASENAME_REGEXP = TestSuite.TESTCASENAME_REGEXP_ANY if self.any_language else TestSuite.TESTCASENAME_REGEXP_PY        
-        self.test_cases = {} # dict of dict; usage: test_cases[scriptname][testname]
+        self.TESTCASENAME_REGEXP = TestSuite.TESTCASENAME_REGEXP_ANY if self.any_language else TestSuite.TESTCASENAME_REGEXP_PY
+        self.test_cases = {} #  dict of dict; usage: test_cases[scriptname][testname]
         self.assignment_name = self.__verify_testdir_contents()
-    
+
     def collect_tests(self, create_missing_dirs):
         ''' Collects all test cases in the given marking dir.
             - create_missing_dirs (boolean): Whether to create missing directories
-            (set this to True when the suite is used to generate the expected output files) 
+            (set this to True when the suite is used to generate the expected output files)
         '''
         test_cases = self.test_cases = {}
-    
+
         test_directories = glob.glob(os.path.join(self.testcase_dir, "*"))
         script_names = []
-        # Go through each of the test scripts
+        #  Go through each of the test scripts
         for test_path in test_directories:
             print("Looking into ",test_path)
             m = self.TESTCASENAME_REGEXP.match(os.path.basename(test_path))
-            if m==None:  # Not a script test directory
+            if m==None:  #  Not a script test directory
                 continue
             if m.group(1)!=self.assignment_name:
                 raise RuntimeError("Unexpected directory %s; does not match assignment-name %s" %(test_path,self.assignment_name))
-            # check that the full directory structure is there. If absent error
-            # and exit unless gen_results is present, in which case generate
+            #  check that the full directory structure is there. If absent error
+            #  and exit unless gen_results is present, in which case generate
             self.__verify_scripttest_dir(test_path, create_missing_dirs)
 
             script_name = m.group(4)
-            # reset the testcases for the given script:
+            #  reset the testcases for the given script:
             test_cases = self.test_cases[script_name] = {}
             self.__add_input_files(test_cases,script_name,test_path)
             self.__add_resource_files(test_cases,script_name,test_path)
             self.__add_exp_files(test_cases,script_name,test_path)
-        
-        
+
+
     def __verify_scripttest_dir(self, test_path, create_missing_dirs):
         for fld in self.TESTCASE_SUBDIRECTORIES:
             dir_path = os.path.join(test_path, fld)
@@ -147,7 +147,7 @@ class TestSuite:
                     os.mkdir(dir_path)
                 else:
                     raise RuntimeError("Missing directory %s" % (dir_path,))
-            
+
     def print_result(self,result,detail):
         if result==TestCase.PASS:
             print("Pass")
@@ -159,9 +159,9 @@ class TestSuite:
             print("Failed with error" + str(detail))
         if result==TestCase.SOFTTEST_FAIL or result==TestCase.HARDTEST_FAIL:
             detail.print()
-    
-    def run_tests(self,submission_dir,timeout,gen_res,visible_space_diff
-        ,verbose):
+
+    def run_tests(self, submission_dir, timeout, gen_res, visible_space_diff
+                  , verbose):
         for (k,v) in sorted(list(self.test_cases.items())):
             trace("Running tests against script %s" % (k,))
             for (kk,vv) in sorted(list(v.items())):
@@ -188,7 +188,7 @@ class TestSuite:
                     elif vv.result==TestCase.HARDTEST_FAIL:
                         hardtest_fails += 1
         return (tests,errs,softtest_fails,hardtest_fails)
-        
+
 #    def run_tests(self,script_paths):
 #        '''Runs the tests collected against a list of scripts.
 #           - script_paths: List of paths to python scripts to be tested
@@ -212,8 +212,8 @@ class TestSuite:
 #            scr_base = os.path.basename(scr)
 #            if scr_base in self.test_cases:
 #                self.test_cases[scr_base].run_test(submission_dir,timeout,gen_res,show_diff,print_cmd=False)
-                
-        
+
+
     def __verify_testdir_contents(self):
         '''Verify the contents of the directory containing the test
            to see if there are invalid files there.
@@ -233,11 +233,11 @@ class TestSuite:
             m = self.TESTCASENAME_REGEXP.match(base_name)
             if m is not None:
                 if asn_dir == None:
-                    asn_dir = m.group(1) # e.g., returns as-<NUM>-<NUM>
+                    asn_dir = m.group(1) #  e.g., returns as-<NUM>-<NUM>
                 elif asn_dir!=m.group(1):
                     raise RuntimeError(
                         """The marking directory contains testcases belonging to multiple """
-                        """assignments: (%s,%s)""" % (asn_dir,m.group(1)) 
+                        """assignments: (%s,%s)""" % (asn_dir,m.group(1))
                     )
             elif base_name == "__pycache__":  # check contents of pycache
                 pycache_files = glob.glob(os.path.join(file, "*"))
@@ -269,28 +269,28 @@ class TestSuite:
                 """with the extension .py. The search expression %s did not return """
                 """any such directories.""" %(os.path.join(os.path.abspath(self.testcase_dir), "*"),))
         return asn_dir
-        
+
     # Get the absolute path to every infrastructure directory for the given script
 
-    def __get_paths(self,test_path): #assignment_name, script_name):
+    def __get_paths(self,test_path): #  assignment_name, script_name):
         dirs = []
         for folder in TestSuite.TESTCASE_SUBDIRECTORIES:
             path = os.path.join(test_path
-                    #self.testcase_dir, assignment_name + "-" + script_name + "-test"
+                    #  self.testcase_dir, assignment_name + "-" + script_name + "-test"
                     , folder)
             dirs.append(path)
         return dirs
-        
+
     def __add_input_files(self,test_cases,script_name,test_path):
-        # Enumerate the input files:
+        #  Enumerate the input files:
         input_dir =  os.path.join(test_path, TestSuite.INPUT_DIR)
         exp_path = os.path.join(test_path, TestSuite.EXPECTED_DIR)
         output_path = os.path.join(test_path, TestSuite.OUTPUT_DIR)
-        err_path = os.path.join(test_path, TestSuite.ERROR_DIR)        
+        err_path = os.path.join(test_path, TestSuite.ERROR_DIR)
         input_files = glob.glob(os.path.join(input_dir, '*'))
 #        print("Input files:",input_files)
         for input_path in input_files:
-            filename = os.path.basename(input_path) # filename without path, basically
+            filename = os.path.basename(input_path) #  filename without path, basically
             type_match = TestSuite.INPUT_TYPE_RE.match(filename)
             if type_match==None or len(type_match.groups())!=2:
                 raise RuntimeError("""File %s in directory %s unexpected: """
@@ -308,14 +308,14 @@ class TestSuite:
     def __add_resource_files(self,test_cases,script_name,test_path):
         exp_path = os.path.join(test_path, TestSuite.EXPECTED_DIR)
         output_path = os.path.join(test_path, TestSuite.OUTPUT_DIR)
-        err_path = os.path.join(test_path, TestSuite.ERROR_DIR)        
+        err_path = os.path.join(test_path, TestSuite.ERROR_DIR)
 
         resource_path = os.path.join(test_path, TestSuite.RESOURCE_DIR)
         resource_dir_files = os.path.join(resource_path, '*')
         resource_files = glob.glob(resource_dir_files)
         # test_name-file_name.extension
         # resources that will be copied into the resource dir
-        
+
         for resource_path in resource_files:
             filename = os.path.basename(resource_path)
             res_match = TestSuite.RESOURCE_RE.match(filename)
@@ -325,9 +325,9 @@ class TestSuite:
                     test_case.add_resource(resource_path)
 #                old behavior:
 #                raise RuntimeError("""Unexpected resource: %s."""
-#                     """Resources must be named <testname>-<resource_filename>""" 
+#                     """Resources must be named <testname>-<resource_filename>"""
 #                     """with no dash in filename or ext""" % (filename, ))
-            #test_name = script_name+"-"+res_match.group(1)
+            #  test_name = script_name+"-"+res_match.group(1)
             else:
                 test_name = res_match.group(1)
                 # print('test_name',test_name,resource_path)
@@ -349,7 +349,7 @@ class TestSuite:
             type_match = TestSuite.OUTPUT_RE.match(test_name)
             if type_match==None or len(type_match.groups())!=2:
                 raise RuntimeError("Unexpected file %s" % (exp_path,))
-            #test_name = script_name+"-"+m_groups[0]
+            #  test_name = script_name+"-"+m_groups[0]
             test_name = type_match.group(1)
             input_type = type_match.group(2)
             if test_name not in test_cases:
